@@ -9,7 +9,7 @@ In this study, we address the question of whether we can properly determine diff
 
 
 **CITATION**
-
+```
 @article{youn2025can,
   title={Can we properly determine differential emission measures from Solar Orbiter/EUI/FSI with deep learning?},
   author={Youn, Junmu and Lee, Harim and Jeong, Hyun-Jin and Lee, Jin-Yi and Park, Eunsu and Moon, Yong-Jae},
@@ -19,3 +19,4 @@ In this study, we address the question of whether we can properly determine diff
   year={2025},
   publisher={EDP Sciences}
 }
+```

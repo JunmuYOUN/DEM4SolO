@@ -44,9 +44,10 @@ early_stopping = EarlyStopping(patience=20, verbose=True, path=early_stopping_pa
 
 # 수정중=============================        
 condition_root = ./condition
+target_root = ./target
 trf_root = ./trf/
 class ImageDataset(Dataset):
-    def __init__(self, root_dir, condition_root, trf_root, patch_size=5):
+    def __init__(self, target_root, condition_root, trf_root, patch_size=5):
         """
         self.root_dir = root_dir
         self.patch_size = patch_size

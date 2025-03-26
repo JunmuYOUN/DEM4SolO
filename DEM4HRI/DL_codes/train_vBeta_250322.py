@@ -1,12 +1,11 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 import numpy as np
 
 # import os
 # import matplotlib.pyplot as plt
-# from torch.utils.data import Dataset, DataLoader
 
 # from tqdm import tqdm
 # from glob import glob
@@ -43,27 +42,45 @@ early_stopping = EarlyStopping(patience=20, verbose=True, path=early_stopping_pa
 
 
 # 수정중=============================        
-condition_root = ./condition
+image_root = ./img
 target_root = ./target
 trf_root = ./trf/
-class ImageDataset(Dataset):
-    def __init__(self, target_root, condition_root, trf_root, patch_size=5):
-        """
-        self.root_dir = root_dir
-        self.patch_size = patch_size
-        self.data = []
-        self.labels = []
-        self.load_data()
 
-        """
-        self.condition_root = condition_root
+class ImageDataset(Dataset):
+    def __init__(self, image_root, target_root, trf_root, patch_size=5):
+
+        self.image_root = image_root
+        self.target_root = target_root
         self.trf_root = trf_root
         self.patch_size = patch_size
 
+        self.images_list = sorted(glob(os.path.join(image_root, '/*.npy')))
+        # self.target_list = sorted(glob(os.path.join(target_root, '/*.npy')))
+        # self.trf_list = sorted(glob(os.path.join(trf_root, '/*.npy')))
+
+    def __len__(self):
+        return len(self.images_list)
+
+    def __getitem__(self, idx):
+
+        image_path = self.image_list[idx]
+        image = np.load(image_path)  # shape: (2048, 2048)
+        H, W = image.shape
+
+        # 이미지 패치 생성
+        image_patches = []
+        for i in range(H - self.patch_size + 1):
+            for j in range(W - self.patch_size + 1):
+                patch = image[i:i+self.patch_size, j:j+self.patch_size]
+                patch = patch[np.newaxis, :, :]  # (1, 5, 5)
+                image_patches.append(patch)
+
+        return
 
 
-        
 
+    cond_patch = self.image_patches[patch_idx] # (1, 5, 5)
+    dem_vector = self.loaded_trf[patch_idx] # (81,)
 
 # -----------------------------
 # Encoder
@@ -86,7 +103,7 @@ class PixelDEMEncoder(nn.Module):
         return x1, x2, x3
     
 # -----------------------------
-# Condition Encoder (5x5 → 1x1)
+# Condition Encoder (5x5 >> 1x1)
 # -----------------------------    
 
 class PixelConditionEncoder(nn.Module):
@@ -120,8 +137,6 @@ class PixelDEMDecoder(nn.Module):
             return d1, d2, d3
         
 
-
-
 # temp    
 encoder = PixelDEMEncoder()
 decoder = PixelDEMDecoder()
@@ -131,4 +146,9 @@ x1, x2, x3 = encoder(x)
 cond_scalar = cond_encoder(condition_img) # (batch_size, 1)
 d1, d2, d3 = decoder(x1, x2, x3, cond_scalar)
 
-# =============================        
+
+# 예시
+train_dataset = ImageDataset(image_root='./img', trf_root='./trf', patch_size=5)
+train_loader = DataLoader(train_dataset, batch_size=2, shuffle=True)  # 이미지 2장 단위로 불러옴
+
+# =============================   

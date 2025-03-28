@@ -10,12 +10,8 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from glob import glob
 
-
 # import matplotlib.pyplot as plt
-
-
 # from torchsummary import summary
-
 
 # import argparse
 # from pytorchtools import EarlyStopping
@@ -32,8 +28,6 @@ from glob import glob
 # parser.add_argument('--smoothing', default=0.1, type=float, help="Label smoothing value")
 # parser.add_argument('-a', '--alpha', default=0.5, type=float)
 # args = parser.parse_args()
-
-
 
 # 
 # # EarlyStopping 경로 생성 확인 및 수정
@@ -168,9 +162,9 @@ d1, d2, d3 = decoder(x1, x2, x3, cond_scalar)
 # =============================   
 # Training
 # =============================
-image_root = ./img
-target_root = ./target
-trf_root = ./trf
+image_root = './img'
+target_root = './target'
+trf_root = './trf'
 
 batch_size=2
 num_epochs=10
@@ -217,14 +211,14 @@ def Train(num_epochs, dataloader, device, patch_size=5):
                     'encoder': encoder.state_dict(),
                     'cond_encoder': cond_encoder.state_dict(),
                     'decoder': decoder.state_dict()
-                }, current_path + '/{}/checkpoint/DEM4HRI/'.format('#model'))
+                }, current_path + '/{}/checkpoint/DEM4HRI/{}.pth'.format('#model', epoch))
             except:
-                os.makedirs(current_path + '/{}/checkpoint/DEM4HRI/'.format('#model'))
+                os.makedirs(current_path + '/{}/checkpoint/DEM4HRI/aaa.pth'.format('#model'))
                 torch.save({
                     'encoder': encoder.state_dict(),
                     'cond_encoder': cond_encoder.state_dict(),
                     'decoder': decoder.state_dict()
-                }, current_path + '/{}/checkpoint/DEM4HRI/'.format('#model'))
+                }, current_path + '/{}/checkpoint/DEM4HRI/{}'.format('#model', epoch))
 
         # validation
 
@@ -256,3 +250,4 @@ if __name__ == '__main__':
     dataset = ImageDataset(image_root='./img', trf_root='./trf', patch_size=5)
     dataloader = DataLoader(dataset, batch_size=2, shuffle=True)
     Train(num_epochs=num_epochs, dataloader=dataloader, device=device, patch_size=5)
+

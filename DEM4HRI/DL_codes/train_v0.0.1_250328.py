@@ -11,10 +11,10 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from glob import glob
 
-
+# =============================
 
 # 수정중=============================      
-
+  
 # TensorBoard 설정
 # current_path = os.getcwd()
 # log_dir = current_path + "/{}/logs/".format("#model_name")  # 로그 저장 경로
@@ -282,6 +282,8 @@ if __name__ == '__main__':
                             shuffle=True,
                             num_workers=8)
     
+
+ 
     Train(num_epochs=num_epochs, 
           train_loader=dataloader, 
           val_loader=dataloader,

@@ -261,7 +261,9 @@ if __name__ == '__main__':
     os.makedirs(log_dir, exist_ok=True)
     writer = SummaryWriter(log_dir)
     
-    image_root = '/userhome/youn_j/Dataset/HRI/L2_test/174/'
+    image_root = '/userhome/youn_j/Dataset/HRI/174_L2_npy/174/'
+
+    val_root = '/userhome/youn_j/Dataset/HRI/174_L2_val/174/'
     trf_root = '/userhome/youn_j/Dataset/HRI/TRF/'
 
     batch_size=1
@@ -282,11 +284,20 @@ if __name__ == '__main__':
                             shuffle=True,
                             num_workers=8)
     
+    val_dataset = ImageDataset(image_root= val_root, 
+                           trf_root= trf_root, 
+                           patch_size=patch_size, 
+                           patches_per_step=200000)
+    
+    val_dataloader = DataLoader(val_dataset, 
+                            batch_size=batch_size, 
+                            shuffle=True,
+                            num_workers=8)
 
  
     Train(num_epochs=num_epochs, 
           train_loader=dataloader, 
-          val_loader=dataloader,
+          val_loader=val_dataloader,
           device=device, 
           patch_size=patch_size,
           patches_per_step=200000)

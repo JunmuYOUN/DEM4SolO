@@ -198,7 +198,7 @@ def Train(num_epochs, train_loader, val_loader, device, patch_size=5, patches_pe
         train_loss = 0.0
         for img_patches, trf in tqdm(dataloader, desc=f"Epoch {epoch+1}/{num_epochs}"):
 
-            img_patches = img_patches.double().to(device)   #.squeeze(0)
+            img_patches = img_patches.squeeze(0).double().to(device)   #
             trf = trf.double().to(device)                          
             trf_expanded = trf.expand(img_patches.size(0), -1)
 
@@ -258,7 +258,7 @@ def Train(num_epochs, train_loader, val_loader, device, patch_size=5, patches_pe
         with torch.no_grad():
             for img_patches, trf in tqdm(val_dataloader, desc=f"Epoch {epoch+1}/{num_epochs}"):
                 
-                img_patches = img_patches.double().to(device)  # (100000, 1, 5, 5) .squeeze(0)
+                img_patches = img_patches.squeeze(0).double().to(device)  # (100000, 1, 5, 5) 
                 trf = trf.double().to(device)                             # (1, 81)
                 trf_expanded = trf.expand(img_patches.size(0), -1)
 

@@ -56,7 +56,8 @@ class ImageDataset(Dataset):
             self.total_steps = len(self.images_list) * self.patches_per_image // self.patches_per_step
 
     def __len__(self):
-        return self.total_patches
+        return len(self.images_list)
+        # return self.total_patches
 
     def __getitem__(self, idx):
         # 한 스텝에서 몇 개의 패치를 뽑는지
@@ -330,7 +331,7 @@ if __name__ == '__main__':
     #     return sorted(divisors)
 
 
-    slice_num = 52
+    slice_num = (image_size[0] - patch_size + 1)/2  #adjust something
     patches_per_step = patch_num(image_size=image_size, patch_size=patch_size) // slice_num
     num_epochs= 100
 

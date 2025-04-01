@@ -67,7 +67,7 @@ class ImageDataset(Dataset):
         patches_per_image = self.patches_per_image
 
         # 이 인덱스가 어떤 이미지에 속하는지 계산
-        image_idx = (idx * patches_per_step) // patches_per_image
+        image_idx = idx   #(idx * patches_per_step) // patches_per_image
 
         # 그 이미지 안에서 시작 패치 번호
         start_patch = (idx * patches_per_step) % patches_per_image
@@ -185,7 +185,7 @@ def Train(num_epochs, train_loader, val_loader, device, patch_size=5, patches_pe
     optimizer = torch.optim.Adam(
         list(encoder.parameters()) +
         list(cond_encoder.parameters()) +
-        list(decoder.parameters()), lr=1e-5)
+        list(decoder.parameters()), lr=1e-3)
 
     # num_epochs=10
     
@@ -198,12 +198,12 @@ def Train(num_epochs, train_loader, val_loader, device, patch_size=5, patches_pe
         train_loss = 0.0
         for img_patches, trf in tqdm(dataloader, desc=f"Epoch {epoch+1}/{num_epochs}"):
 
-            img_patches = img_patches.squeeze(0).double().to(device)  
+            img_patches = img_patches.double().to(device)   #.squeeze(0)
             trf = trf.double().to(device)                          
             trf_expanded = trf.expand(img_patches.size(0), -1)
 
             # 임시
-            denorm_trf = 10**((trf[:,:-1]*7)-30)
+            denorm_trf = 10**((trf[:,:-1]*7)-30).detach()
             denorm_trf = denorm_trf * dlogT
             optimizer.zero_grad()
             
@@ -229,7 +229,7 @@ def Train(num_epochs, train_loader, val_loader, device, patch_size=5, patches_pe
             
             train_loss += loss.item()
 
-        average_loss = loss.item() / len(dataloader)
+        average_loss = train_loss / len(dataloader)
         print(f"Epoch [{epoch+1}/{num_epochs}], Training Loss: {average_loss:.5f}")
         writer.add_scalar('Loss/train', average_loss, epoch)
 
@@ -258,14 +258,13 @@ def Train(num_epochs, train_loader, val_loader, device, patch_size=5, patches_pe
         with torch.no_grad():
             for img_patches, trf in tqdm(val_dataloader, desc=f"Epoch {epoch+1}/{num_epochs}"):
                 
-                img_patches = img_patches.squeeze(0).double().to(device)  # (100000, 1, 5, 5)
+                img_patches = img_patches.double().to(device)  # (100000, 1, 5, 5) .squeeze(0)
                 trf = trf.double().to(device)                             # (1, 81)
                 trf_expanded = trf.expand(img_patches.size(0), -1)
 
                 # 임시
-                denorm_trf = 10**((trf[:, :-1]*7)-30)
+                denorm_trf = 10**((trf[:, :-1]*7)-30).detach()
                 denorm_trf = denorm_trf * dlogT
-                optimizer.zero_grad()
 
                 x1, x2, x3 = encoder(trf_expanded)
                 cond_scalar = cond_encoder(img_patches)
@@ -280,10 +279,10 @@ def Train(num_epochs, train_loader, val_loader, device, patch_size=5, patches_pe
 
                 predicted_pixel = torch.sum(DEMs * denorm_trf, dtype=torch.float64, dim=1)
                 loss = criterion(predicted_pixel, denorm_pix)
-
+                
                 val_loss += loss.item()
 
-            Val_avg_loss = loss.item() / len(dataloader)
+            Val_avg_loss = val_loss / len(val_dataloader)
             print(f"Epoch [{epoch+1}/{num_epochs}], Val Loss: {Val_avg_loss:.5f}")
             writer.add_scalar('Loss/val', Val_avg_loss, epoch)
 
@@ -321,7 +320,7 @@ if __name__ == '__main__':
         
         return patches_per_image
     
-    # 필요시 쓰기기
+    # 필요시 쓰기
     # def get_divisors_optimized(n):
     #     divisors = set()
     #     for i in range(1, int(n**0.5) + 1):
@@ -331,7 +330,7 @@ if __name__ == '__main__':
     #     return sorted(divisors)
 
 
-    slice_num = (image_size[0] - patch_size + 1)/2  #adjust something
+    slice_num = (image_size[0] - patch_size + 1)  #adjust something
     patches_per_step = patch_num(image_size=image_size, patch_size=patch_size) // slice_num
     num_epochs= 100
 
@@ -360,7 +359,7 @@ if __name__ == '__main__':
     val_dataloader = DataLoader(val_dataset, 
                             batch_size=batch_size, 
                             shuffle=True,
-                            drop_last=True,
+                            drop_last=False,
                             num_workers=4)
 
  

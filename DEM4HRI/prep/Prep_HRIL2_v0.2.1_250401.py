@@ -1,5 +1,5 @@
 print('Prep_HRIL2_v0.2.0_250328.py')
-#0.2.0 minor error revised
+#0.2.1 minor error revised
 
 import os
 import numpy as np
@@ -8,7 +8,7 @@ import astropy.io.fits as fits
 from glob import glob
 from tqdm import tqdm
 
-hri_list = glob('/userhome/youn_j/Dataset/HRI/174_L2/*.fits')
+hri_list = sorted(glob('/userhome/youn_j/Dataset/HRI/174_L2/*.fits'))
 data_num = len(hri_list)
 
 print(data_num)
@@ -39,8 +39,13 @@ for i in tqdm(range(data_num)):
         log2_data = (np.clip(log2_data, LoLim, UpLim))/((UpLim-LoLim)) #normalize to 0~1
         log2_data = np.float32(log2_data)   # float32
 #         print(np.min(log2_data))
-        np.save(f'/userhome/youn_j/Dataset/HRI/174_L2_npy/174/{data_name}.npy', log2_data)
+        os.makedirs('/userhome/youn_j/Dataset/HRI/174_L2_npy/174/', exist_ok = True)
+        os.makedirs('/userhome/youn_j/Dataset/HRI/174_L2_val/174/', exist_ok = True)
+    
+        if i % 100 == 0:
+            print(data_name, f"{i}/{data_num}")
+            np.save(f'/userhome/youn_j/Dataset/HRI/174_L2_val/174/{data_name}.npy', log2_data)
+        else:
+            np.save(f'/userhome/youn_j/Dataset/HRI/174_L2_npy/174/{data_name}.npy', log2_data)
     else:
         print(data_name, dat.shape)
-    if i % 100 == 0:
-        print(data_name, f"{i}/{data_num}")

@@ -182,10 +182,14 @@ def Train(num_epochs, train_loader, val_loader, device, patch_size=5, patches_pe
     dlogT = torch.tensor(dlogT, dtype=torch.float64, device=device)
     
     criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(
-        list(encoder.parameters()) +
-        list(cond_encoder.parameters()) +
-        list(decoder.parameters()), lr=1e-3)
+    encoder_lr = 5e-5
+    cond_encoder_lr = 1e-2
+    decoder_lr = 5e-2
+
+    optimizer = torch.optim.Adam([
+        {'params': encoder.parameters(),       'lr': encoder_lr},
+        {'params': cond_encoder.parameters(), 'lr': cond_encoder_lr},
+        {'params': decoder.parameters(),      'lr': decoder_lr}])
 
     # num_epochs=10
     
@@ -193,10 +197,10 @@ def Train(num_epochs, train_loader, val_loader, device, patch_size=5, patches_pe
         encoder.train()
         cond_encoder.train()
         decoder.train()
-        
-        
+            
         train_loss = 0.0
-        for img_patches, trf in tqdm(dataloader, desc=f"Epoch {epoch+1}/{num_epochs}"):
+        i = 0
+        for img_patches, trf in tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}"):
 
             img_patches = img_patches.squeeze(0).double().to(device)   #
             trf = trf.double().to(device)                          
@@ -210,26 +214,33 @@ def Train(num_epochs, train_loader, val_loader, device, patch_size=5, patches_pe
             # trf_expanded = trf.expand(img_patches.size(0), -1)
             x1, x2, x3 = encoder(trf_expanded)
             cond_scalar = cond_encoder(img_patches)
-            _, _, _, DEMs = decoder(x1, x2, x3, cond_scalar) 
+            _, _, _, DEMs = decoder(x1, x2, x3, cond_scalar)
+            DEMs = torch.clamp(DEMs, min=0)
+
+            DEMs = DEMs * 1e18 
 
             # center pixel과 의 차이를 최소화하는 방향으로 학습
             center_idx = (patch_size**2) // 2
             img_patches_flat = img_patches.view(-1, patch_size**2)
             center_pixel = img_patches_flat[:, center_idx]
-            
-            denorm_pix = 2**(center_pixel*15)-1
-
-            # DEMs = DEMs * dlogT # (80,)
-
             predicted_pixel = torch.sum(DEMs * denorm_trf, dtype=torch.float64, dim=1)
-            loss = criterion(predicted_pixel, denorm_pix)
+            loss = criterion(torch.log2(predicted_pixel+1)/15, center_pixel)
             
+            if i < 1:
+                # print(center_pixel)
+                # print(np.min(DEMs.cpu().detach().numpy()))
+                print(predicted_pixel[10])
+                print(denorm_pix[10])
+                print("===================================")
+                i+=1
+
+
             loss.backward()
             optimizer.step()
             
             train_loss += loss.item()
 
-        average_loss = train_loss / len(dataloader)
+        average_loss = train_loss / len(train_loader)
         print(f"Epoch [{epoch+1}/{num_epochs}], Training Loss: {average_loss:.5f}")
         writer.add_scalar('Loss/train', average_loss, epoch)
 
@@ -253,10 +264,9 @@ def Train(num_epochs, train_loader, val_loader, device, patch_size=5, patches_pe
         cond_encoder.eval()
         decoder.eval()
 
-        
         val_loss = 0.0
         with torch.no_grad():
-            for img_patches, trf in tqdm(val_dataloader, desc=f"Epoch {epoch+1}/{num_epochs}"):
+            for img_patches, trf in tqdm(val_loader, desc=f"Epoch {epoch+1}/{num_epochs}"):
                 
                 img_patches = img_patches.squeeze(0).double().to(device)  # (100000, 1, 5, 5) 
                 trf = trf.double().to(device)                             # (1, 81)
@@ -269,24 +279,22 @@ def Train(num_epochs, train_loader, val_loader, device, patch_size=5, patches_pe
                 x1, x2, x3 = encoder(trf_expanded)
                 cond_scalar = cond_encoder(img_patches)
                 _, _, _, DEMs = decoder(x1, x2, x3, cond_scalar)
+                DEMs = torch.clamp(DEMs, min=0)
+
+                DEMs = DEMs * 1e18
 
                 # center pixel과 의 차이를 최소화하는 방향으로 학습
                 center_idx = (patch_size**2) // 2
                 img_patches_flat = img_patches.view(-1, patch_size**2)
                 center_pixel = img_patches_flat[:, center_idx]                
-                
-                denorm_pix = 2**(center_pixel*15)-1
-
                 predicted_pixel = torch.sum(DEMs * denorm_trf, dtype=torch.float64, dim=1)
-                loss = criterion(predicted_pixel, denorm_pix)
-                
+                loss = criterion(torch.log2(predicted_pixel+1)/15, center_pixel)
+
                 val_loss += loss.item()
 
-            Val_avg_loss = val_loss / len(val_dataloader)
+            Val_avg_loss = val_loss / len(val_loader)
             print(f"Epoch [{epoch+1}/{num_epochs}], Val Loss: {Val_avg_loss:.5f}")
             writer.add_scalar('Loss/val', Val_avg_loss, epoch)
-
-
 
 if __name__ == '__main__':
     
@@ -299,11 +307,9 @@ if __name__ == '__main__':
     val_root = '/userhome/youn_j/Dataset/HRI/174_L2_val/174/'
     trf_root = '/userhome/youn_j/Dataset/HRI/TRF/'
 
-    test_root = '/userhome/youn_j/Dataset/HRI/L2_test/174/'
-
     # ========================================
     # 모델 동작 테스트용
-    # image_root = val_root
+    image_root = val_root
     # ========================================
 
 
@@ -370,4 +376,3 @@ if __name__ == '__main__':
           patch_size=patch_size,
           patches_per_step=patches_per_step,
           kernel_size=kernel_size)
-
